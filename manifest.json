@@ -1,7 +1,7 @@
 {
-  "name": "CO2 meter extension",
-  "description": "Demonstrates using WebHID to connect to a CO2 meter.",
-  "version": "1.0",
+  "name": "MuteMe Controller",
+  "description": "Control Google Meet and Microsoft Teams mute state using your MuteMe hardware button via WebHID.",
+  "version": "1.0.0",
   "manifest_version": 3,
   "background": {
     "service_worker": "background.js",
@@ -11,11 +11,35 @@
     "default_icon": {
       "32": "images/icon32.png"
     },
-    "default_title": "Show CO2 meter status",
+    "default_title": "MuteMe Controller",
     "default_popup": "popup.html"
   },
   "icons": {
     "32": "images/icon32.png",
     "128": "images/icon128.png"
-  }
+  },
+  "permissions": [
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://meet.google.com/*",
+    "https://teams.microsoft.com/*",
+    "https://*.teams.microsoft.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://meet.google.com/*"],
+      "js": ["content-scripts/meet-controller.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://teams.microsoft.com/*",
+        "https://*.teams.microsoft.com/*"
+      ],
+      "js": ["content-scripts/teams-controller.js"],
+      "run_at": "document_idle"
+    }
+  ]
 }
