@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Microphone body - larger, fills more space -->
+  <rect x="40" y="16" width="48" height="64" rx="24" fill="#00d4ff"/>
+  
+  <!-- Microphone stand -->
+  <path d="M64 80 L64 105" stroke="#00d4ff" stroke-width="8" stroke-linecap="round"/>
+  <path d="M44 105 L84 105" stroke="#00d4ff" stroke-width="8" stroke-linecap="round"/>
+  
+  <!-- Microphone holder arc -->
+  <path d="M30 50 Q30 92 64 92 Q98 92 98 50" 
+        stroke="#00d4ff" stroke-width="6" fill="none" stroke-linecap="round"/>
+  
+  <!-- Highlight on mic -->
+  <rect x="48" y="26" width="8" height="28" rx="4" fill="#4de8ff" opacity="0.7"/>
+</svg>
