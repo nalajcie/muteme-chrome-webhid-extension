@@ -1,0 +1,16 @@
+{
+  "name": "muteme-chrome-extension",
+  "version": "1.0.0",
+  "description": "Control meeting mute with MuteMe hardware button",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "check": "npm run lint"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "globals": "^15.0.0"
+  }
+}
