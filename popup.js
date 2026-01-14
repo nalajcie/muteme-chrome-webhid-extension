@@ -17,6 +17,7 @@ let state = {
   activePlatform: null,
   isMuted: null,
   touchMode: TOUCH_MODE.TOGGLE,
+  focusTabOnPress: false,
 };
 
 // ============================================================================
@@ -33,6 +34,7 @@ const muteStatus = document.getElementById('muteStatus');
 const muteBtn = document.getElementById('muteBtn');
 const connectBtn = document.getElementById('connectBtn');
 const touchModeSelect = document.getElementById('touchModeSelect');
+const focusTabCheckbox = document.getElementById('focusTabCheckbox');
 
 // ============================================================================
 // UI Update
@@ -55,12 +57,14 @@ function updateUI() {
   // Call status
   if (state.activeCallTabId) {
     callIndicator.className = 'status-indicator connected';
-    const platform = state.activePlatform === 'meet' ? 'Google Meet' : 
-                     state.activePlatform === 'teams' ? 'Microsoft Teams' : 'Active';
+    const platform = state.activePlatform === 'meet' ? 'Google Meet' :
+      state.activePlatform === 'teams' ? 'Microsoft Teams' : 'Active';
     callStatus.textContent = platform;
+    callStatus.classList.add('clickable');
   } else {
     callIndicator.className = 'status-indicator disconnected';
     callStatus.textContent = 'No call';
+    callStatus.classList.remove('clickable');
   }
 
   // Mute status
@@ -88,6 +92,9 @@ function updateUI() {
 
   // Touch mode
   touchModeSelect.value = state.touchMode;
+
+  // Focus tab checkbox
+  focusTabCheckbox.checked = state.focusTabOnPress;
 }
 
 // ============================================================================
@@ -95,7 +102,7 @@ function updateUI() {
 // ============================================================================
 function handleMessage(message) {
   console.log('[Popup] Received:', message);
-  
+
   switch (message.type) {
     case MESSAGE.STATE_UPDATE:
     case MESSAGE.DEVICE_CONNECTED:
@@ -128,43 +135,76 @@ function handleConnectClick() {
 function handleTouchModeChange(e) {
   const mode = e.target.value;
   state.touchMode = mode;
-  
-  // Save to storage
-  chrome.storage.local.set({ touchMode: mode });
-  
-  // Notify background
+
+  // Notify background (it will handle storage)
   chrome.runtime.sendMessage({
-    type: 'muteme:set-touch-mode',
+    type: MESSAGE.SET_TOUCH_MODE,
     data: { mode },
   });
+}
+
+function handleFocusTabChange(e) {
+  const enabled = e.target.checked;
+  state.focusTabOnPress = enabled;
+
+  chrome.runtime.sendMessage({
+    type: MESSAGE.SET_FOCUS_TAB,
+    data: { enabled },
+  });
+}
+
+function handleCallStatusClick() {
+  if (state.activeCallTabId) {
+    chrome.runtime.sendMessage({
+      type: MESSAGE.FOCUS_MEETING_TAB,
+    });
+    // Close popup after clicking
+    window.close();
+  }
 }
 
 // ============================================================================
 // Initialization
 // ============================================================================
+let stateRefreshInterval = null;
+
+async function refreshState() {
+  try {
+    const response = await chrome.runtime.sendMessage({ type: MESSAGE.GET_STATE });
+    if (response) {
+      state = { ...state, ...response };
+      updateUI();
+    }
+  } catch (e) {
+    console.warn('[Popup] Failed to refresh state:', e);
+  }
+}
+
 async function init() {
   // Set up port connection to background
   port = chrome.runtime.connect({ name: 'popup' });
   port.onMessage.addListener(handleMessage);
 
-  // Get initial state
-  const response = await chrome.runtime.sendMessage({ type: MESSAGE.GET_STATE });
-  if (response) {
-    state = { ...state, ...response };
-    updateUI();
-  }
+  // Get initial state from background
+  await refreshState();
 
-  // Load touch mode from storage
-  const stored = await chrome.storage.local.get(['touchMode']);
-  if (stored.touchMode) {
-    state.touchMode = stored.touchMode;
-    updateUI();
-  }
+  // Periodically refresh state while popup is open
+  // This ensures we catch any state changes missed by port messages
+  stateRefreshInterval = setInterval(refreshState, 1000);
 
   // Set up event handlers
   muteBtn.addEventListener('click', handleMuteClick);
   connectBtn.addEventListener('click', handleConnectClick);
   touchModeSelect.addEventListener('change', handleTouchModeChange);
+  focusTabCheckbox.addEventListener('change', handleFocusTabChange);
+  callStatus.addEventListener('click', handleCallStatusClick);
 }
+
+// Clean up when popup closes
+window.addEventListener('unload', () => {
+  if (stateRefreshInterval) {
+    clearInterval(stateRefreshInterval);
+  }
+});
 
 window.addEventListener('load', init);

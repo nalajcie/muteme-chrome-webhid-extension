@@ -1,7 +1,7 @@
 /**
  * @filename meet-controller.js
  * @description Content script for Google Meet integration
- * 
+ *
  * Detects Google Meet calls, monitors mute state, and handles mute commands.
  */
 
@@ -14,6 +14,7 @@ const MESSAGE = {
   MUTE_STATE_CHANGED: 'muteme:mute-state-changed',
   SET_MUTE: 'muteme:set-mute',
   TOGGLE_MUTE: 'muteme:toggle-mute',
+  GET_VISIBILITY: 'muteme:get-visibility',
 };
 
 const PLATFORM = 'meet';
@@ -30,7 +31,8 @@ const MUTE_BUTTON_SELECTORS = [
   'button[data-tooltip*="microphone" i]',
 ];
 
-const CALL_INDICATORS = [
+// eslint-disable-next-line no-unused-vars
+const _CALL_INDICATORS = [
   '[data-meeting-code]',
   '[data-meeting-title]',
   '.google-material-icons:contains("call_end")',
@@ -43,7 +45,7 @@ const CALL_INDICATORS = [
 let isInCall = false;
 let isMuted = null;
 let muteCheckInterval = null;
-let callCheckInterval = null;
+let _callCheckInterval = null;
 
 // ============================================================================
 // DOM Helpers
@@ -59,7 +61,7 @@ function findMuteButton() {
 }
 
 function isElementVisible(el) {
-  return el && el.offsetParent !== null && 
+  return el && el.offsetParent !== null &&
          getComputedStyle(el).visibility !== 'hidden' &&
          getComputedStyle(el).display !== 'none';
 }
@@ -100,32 +102,50 @@ function isInMeetCall() {
   // Look for call UI elements
   const hasLeaveButton = !!document.querySelector('[aria-label*="Leave call" i]');
   const hasCallControls = !!findMuteButton();
-  
+
   return hasLeaveButton || hasCallControls;
 }
 
 // ============================================================================
 // Mute Control
 // ============================================================================
+
+/**
+ * Simulate Ctrl+D keyboard shortcut (Google Meet mute toggle)
+ * This works even when the tab is not focused, unlike button.click()
+ */
+function simulateMuteShortcut() {
+  console.log('[MuteMe Meet] Simulating Ctrl+D shortcut');
+
+  // Google Meet uses Ctrl+D to toggle mute
+  const keydownEvent = new KeyboardEvent('keydown', {
+    key: 'd',
+    code: 'KeyD',
+    keyCode: 68,
+    which: 68,
+    ctrlKey: true,
+    bubbles: true,
+    cancelable: true,
+  });
+
+  document.dispatchEvent(keydownEvent);
+
+  // Check state after a short delay
+  setTimeout(checkMuteState, 150);
+}
+
 function toggleMute() {
-  const button = findMuteButton();
-  if (button) {
-    button.click();
-    console.log('[MuteMe Meet] Toggled mute');
-    
-    // Check state after a short delay
-    setTimeout(checkMuteState, 100);
-  } else {
-    console.warn('[MuteMe Meet] Mute button not found');
-  }
+  // Try keyboard shortcut first (works even when tab not focused)
+  simulateMuteShortcut();
 }
 
 function setMute(shouldMute) {
   const currentMuted = getMuteState();
   console.log('[MuteMe Meet] setMute:', shouldMute, 'current:', currentMuted);
-  
+
   if (currentMuted === null) {
-    console.warn('[MuteMe Meet] Cannot determine current mute state');
+    console.warn('[MuteMe Meet] Cannot determine current mute state, attempting toggle anyway');
+    toggleMute();
     return;
   }
 
@@ -139,11 +159,11 @@ function setMute(shouldMute) {
 // ============================================================================
 function checkMuteState() {
   const newMuted = getMuteState();
-  
+
   if (newMuted !== isMuted) {
     isMuted = newMuted;
     console.log('[MuteMe Meet] Mute state changed:', isMuted);
-    
+
     chrome.runtime.sendMessage({
       type: MESSAGE.MUTE_STATE_CHANGED,
       data: { isMuted: isMuted },
@@ -153,17 +173,17 @@ function checkMuteState() {
 
 function checkCallState() {
   const newInCall = isInMeetCall();
-  
+
   if (newInCall !== isInCall) {
     isInCall = newInCall;
     console.log('[MuteMe Meet] Call state changed:', isInCall);
-    
+
     if (isInCall) {
       chrome.runtime.sendMessage({
         type: MESSAGE.CALL_STARTED,
         data: { platform: PLATFORM },
       }).catch(e => console.warn('[MuteMe Meet] Failed to send call started:', e));
-      
+
       // Start mute state monitoring
       startMuteMonitoring();
     } else {
@@ -171,7 +191,7 @@ function checkCallState() {
         type: MESSAGE.CALL_ENDED,
         data: { platform: PLATFORM },
       }).catch(e => console.warn('[MuteMe Meet] Failed to send call ended:', e));
-      
+
       // Stop mute monitoring
       stopMuteMonitoring();
     }
@@ -180,7 +200,7 @@ function checkCallState() {
 
 function startMuteMonitoring() {
   if (muteCheckInterval) return;
-  
+
   // Check mute state every 500ms
   muteCheckInterval = setInterval(checkMuteState, 500);
   checkMuteState(); // Initial check
@@ -198,16 +218,25 @@ function stopMuteMonitoring() {
 // Message Handling
 // ============================================================================
 function handleMessage(message, sender, sendResponse) {
-  console.log('[MuteMe Meet] Received message:', message);
-  
   switch (message.type) {
     case MESSAGE.SET_MUTE:
       setMute(message.data.mute);
       break;
-      
+
     case MESSAGE.TOGGLE_MUTE:
       toggleMute();
       break;
+
+    case MESSAGE.GET_VISIBILITY:
+      // Return whether the tab content is visible
+      // Either the tab itself is visible, or there's a Picture-in-Picture window
+      // eslint-disable-next-line no-case-declarations
+      const hasPip = typeof documentPictureInPicture !== 'undefined' &&
+                     documentPictureInPicture.window !== null;
+      sendResponse({
+        visible: document.visibilityState === 'visible' || hasPip,
+      });
+      return true; // Keep channel open for async response
   }
 }
 
@@ -216,16 +245,16 @@ function handleMessage(message, sender, sendResponse) {
 // ============================================================================
 function init() {
   console.log('[MuteMe Meet] Content script loaded');
-  
+
   // Listen for messages from background
   chrome.runtime.onMessage.addListener(handleMessage);
-  
+
   // Start monitoring for call state
-  callCheckInterval = setInterval(checkCallState, 1000);
-  
+  _callCheckInterval = setInterval(checkCallState, 1000);
+
   // Initial check
   checkCallState();
-  
+
   // Also use MutationObserver for faster detection
   const observer = new MutationObserver(() => {
     checkCallState();
@@ -233,7 +262,7 @@ function init() {
       checkMuteState();
     }
   });
-  
+
   observer.observe(document.body, {
     childList: true,
     subtree: true,

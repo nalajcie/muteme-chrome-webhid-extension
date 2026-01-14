@@ -1,7 +1,7 @@
 /**
  * @filename teams-controller.js
  * @description Content script for Microsoft Teams integration
- * 
+ *
  * Detects Teams calls, monitors mute state, and handles mute commands.
  */
 
@@ -14,6 +14,7 @@ const MESSAGE = {
   MUTE_STATE_CHANGED: 'muteme:mute-state-changed',
   SET_MUTE: 'muteme:set-mute',
   TOGGLE_MUTE: 'muteme:toggle-mute',
+  GET_VISIBILITY: 'muteme:get-visibility',
 };
 
 const PLATFORM = 'teams';
@@ -27,12 +28,12 @@ const MUTE_BUTTON_SELECTORS = [
   '#microphone-button',
   '[data-tid="call-control-microphone"]',
   '[id*="microphone"][role="button"]',
-  
+
   // Classic Teams
   'button[aria-label*="microphone" i]',
   'button[title*="microphone" i]',
   '[data-cid="calling-control-bar-microphone"]',
-  
+
   // Generic fallbacks
   '[aria-label*="Mute" i]',
   '[aria-label*="Unmute" i]',
@@ -42,11 +43,11 @@ const CALL_INDICATORS = [
   // New Teams
   '[data-tid="calling-unified-bar"]',
   '[data-tid="call-control-bar"]',
-  
+
   // Classic Teams
   '[data-cid="calling-unified-bar"]',
   '#calling-unified-bar',
-  
+
   // Hangup button
   '[data-tid="call-control-hangup"]',
   'button[aria-label*="Hang up" i]',
@@ -59,7 +60,7 @@ const CALL_INDICATORS = [
 let isInCall = false;
 let isMuted = null;
 let muteCheckInterval = null;
-let callCheckInterval = null;
+let _callCheckInterval = null;
 
 // ============================================================================
 // DOM Helpers
@@ -78,12 +79,12 @@ function findMuteButton() {
 
 function isElementVisible(el) {
   if (!el) return false;
-  
+
   const rect = el.getBoundingClientRect();
   if (rect.width === 0 || rect.height === 0) return false;
-  
+
   const style = getComputedStyle(el);
-  return style.visibility !== 'hidden' && 
+  return style.visibility !== 'hidden' &&
          style.display !== 'none' &&
          style.opacity !== '0';
 }
@@ -102,7 +103,7 @@ function getMuteState() {
   const ariaLabel = (button.getAttribute('aria-label') || '').toLowerCase();
   const title = (button.getAttribute('title') || '').toLowerCase();
   const label = ariaLabel || title;
-  
+
   if (label.includes('unmute') || label.includes('turn on microphone')) {
     return true; // Button says "unmute" = currently muted
   }
@@ -139,7 +140,7 @@ function isInTeamsCall() {
       return true;
     }
   }
-  
+
   // Check for mute button presence as a call indicator
   return findMuteButton() !== null;
 }
@@ -147,24 +148,16 @@ function isInTeamsCall() {
 // ============================================================================
 // Mute Control
 // ============================================================================
-function toggleMute() {
-  const button = findMuteButton();
-  if (button) {
-    button.click();
-    console.log('[MuteMe Teams] Toggled mute');
-    
-    // Check state after a short delay
-    setTimeout(checkMuteState, 100);
-  } else {
-    // Try keyboard shortcut as fallback (Ctrl+Shift+M)
-    console.log('[MuteMe Teams] Button not found, trying keyboard shortcut');
-    simulateKeyboardShortcut();
-  }
-}
 
-function simulateKeyboardShortcut() {
+/**
+ * Simulate Ctrl+Shift+M keyboard shortcut (Teams mute toggle)
+ * This works even when the tab is not focused, unlike button.click()
+ */
+function simulateMuteShortcut() {
+  console.log('[MuteMe Teams] Simulating Ctrl+Shift+M shortcut');
+
   // Ctrl+Shift+M is the Teams mute shortcut
-  const event = new KeyboardEvent('keydown', {
+  const keydownEvent = new KeyboardEvent('keydown', {
     key: 'm',
     code: 'KeyM',
     keyCode: 77,
@@ -174,13 +167,22 @@ function simulateKeyboardShortcut() {
     bubbles: true,
     cancelable: true,
   });
-  document.dispatchEvent(event);
+
+  document.dispatchEvent(keydownEvent);
+
+  // Check state after a short delay
+  setTimeout(checkMuteState, 150);
+}
+
+function toggleMute() {
+  // Use keyboard shortcut (works even when tab not focused)
+  simulateMuteShortcut();
 }
 
 function setMute(shouldMute) {
   const currentMuted = getMuteState();
   console.log('[MuteMe Teams] setMute:', shouldMute, 'current:', currentMuted);
-  
+
   if (currentMuted === null) {
     console.warn('[MuteMe Teams] Cannot determine current mute state, attempting toggle');
     toggleMute();
@@ -197,11 +199,11 @@ function setMute(shouldMute) {
 // ============================================================================
 function checkMuteState() {
   const newMuted = getMuteState();
-  
+
   if (newMuted !== isMuted) {
     isMuted = newMuted;
     console.log('[MuteMe Teams] Mute state changed:', isMuted);
-    
+
     chrome.runtime.sendMessage({
       type: MESSAGE.MUTE_STATE_CHANGED,
       data: { isMuted: isMuted },
@@ -211,17 +213,17 @@ function checkMuteState() {
 
 function checkCallState() {
   const newInCall = isInTeamsCall();
-  
+
   if (newInCall !== isInCall) {
     isInCall = newInCall;
     console.log('[MuteMe Teams] Call state changed:', isInCall);
-    
+
     if (isInCall) {
       chrome.runtime.sendMessage({
         type: MESSAGE.CALL_STARTED,
         data: { platform: PLATFORM },
       }).catch(e => console.warn('[MuteMe Teams] Failed to send call started:', e));
-      
+
       // Start mute state monitoring
       startMuteMonitoring();
     } else {
@@ -229,7 +231,7 @@ function checkCallState() {
         type: MESSAGE.CALL_ENDED,
         data: { platform: PLATFORM },
       }).catch(e => console.warn('[MuteMe Teams] Failed to send call ended:', e));
-      
+
       // Stop mute monitoring
       stopMuteMonitoring();
     }
@@ -238,7 +240,7 @@ function checkCallState() {
 
 function startMuteMonitoring() {
   if (muteCheckInterval) return;
-  
+
   // Check mute state every 500ms
   muteCheckInterval = setInterval(checkMuteState, 500);
   checkMuteState(); // Initial check
@@ -256,16 +258,19 @@ function stopMuteMonitoring() {
 // Message Handling
 // ============================================================================
 function handleMessage(message, sender, sendResponse) {
-  console.log('[MuteMe Teams] Received message:', message);
-  
   switch (message.type) {
     case MESSAGE.SET_MUTE:
       setMute(message.data.mute);
       break;
-      
+
     case MESSAGE.TOGGLE_MUTE:
       toggleMute();
       break;
+
+    case MESSAGE.GET_VISIBILITY:
+      // Return whether the tab is visible (not hidden)
+      sendResponse({ visible: document.visibilityState === 'visible' });
+      return true; // Keep channel open for async response
   }
 }
 
@@ -274,16 +279,16 @@ function handleMessage(message, sender, sendResponse) {
 // ============================================================================
 function init() {
   console.log('[MuteMe Teams] Content script loaded');
-  
+
   // Listen for messages from background
   chrome.runtime.onMessage.addListener(handleMessage);
-  
+
   // Start monitoring for call state
-  callCheckInterval = setInterval(checkCallState, 1000);
-  
+  _callCheckInterval = setInterval(checkCallState, 1000);
+
   // Initial check with delay (Teams can be slow to load)
   setTimeout(checkCallState, 2000);
-  
+
   // Also use MutationObserver for faster detection
   const observer = new MutationObserver(() => {
     checkCallState();
@@ -291,7 +296,7 @@ function init() {
       checkMuteState();
     }
   });
-  
+
   observer.observe(document.body, {
     childList: true,
     subtree: true,

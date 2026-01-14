@@ -32,32 +32,32 @@ async function createGrayscaleIcon(size) {
   }
 
   const imagePath = `images/icon${size}.png`;
-  
+
   // Fetch the image
   const response = await fetch(chrome.runtime.getURL(imagePath));
   const blob = await response.blob();
   const bitmap = await createImageBitmap(blob);
-  
+
   // Create offscreen canvas
   const canvas = new OffscreenCanvas(size, size);
   const ctx = canvas.getContext('2d');
-  
+
   // Draw image
   ctx.drawImage(bitmap, 0, 0, size, size);
-  
+
   // Get image data and convert to grayscale
   const imageData = ctx.getImageData(0, 0, size, size);
   const data = imageData.data;
-  
+
   for (let i = 0; i < data.length; i += 4) {
     // Convert to grayscale using luminance formula
     const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-    data[i] = gray;     // R
+    data[i] = gray; // R
     data[i + 1] = gray; // G
     data[i + 2] = gray; // B
     // Alpha unchanged
   }
-  
+
   grayscaleCache.set(cacheKey, imageData);
   return imageData;
 }

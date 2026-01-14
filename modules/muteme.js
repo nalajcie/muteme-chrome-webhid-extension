@@ -1,7 +1,7 @@
 /**
  * @filename muteme.js
  * @description MuteMe device driver using WebHID API
- * 
+ *
  * Provides methods for:
  * - Device connection/disconnection
  * - LED color and effect control
@@ -13,26 +13,25 @@ import {
   LED_COLOR,
   LED_EFFECT,
   TOUCH_EVENT,
-  MESSAGE,
 } from './constants.js';
 
 class MuteMe {
   constructor() {
     this.device = null;
     this.isConnected = false;
-    
+
     // Callbacks
     this.onConnect = null;
     this.onDisconnect = null;
     this.onTouchStart = null;
     this.onTouchEnd = null;
     this.onTouching = null;
-    
+
     // Bind methods
     this._handleConnect = this._handleConnect.bind(this);
     this._handleDisconnect = this._handleDisconnect.bind(this);
     this._handleInputReport = this._handleInputReport.bind(this);
-    
+
     // Track touch state for tap detection
     this._isTouching = false;
     this._touchStartTime = null;
@@ -41,7 +40,7 @@ class MuteMe {
   /**
    * Initialize the MuteMe driver.
    * Sets up HID event listeners for device connect/disconnect.
-   * 
+   *
    * @param {Object} callbacks - Callback functions
    * @param {Function} callbacks.onConnect - Called when device connects
    * @param {Function} callbacks.onDisconnect - Called when device disconnects
@@ -55,18 +54,18 @@ class MuteMe {
     this.onTouchStart = callbacks.onTouchStart || null;
     this.onTouchEnd = callbacks.onTouchEnd || null;
     this.onTouching = callbacks.onTouching || null;
-    
+
     // Listen for device connect/disconnect events
     navigator.hid.addEventListener('connect', this._handleConnect);
     navigator.hid.addEventListener('disconnect', this._handleDisconnect);
-    
+
     console.log('[MuteMe] Initialized');
   }
 
   /**
    * Request user permission to access a MuteMe device.
    * Must be called from a user gesture (click event).
-   * 
+   *
    * @returns {Promise<boolean>} True if permission granted and device found
    */
   async requestPermission() {
@@ -74,13 +73,13 @@ class MuteMe {
       const devices = await navigator.hid.requestDevice({
         filters: MUTEME_DEVICE_FILTERS,
       });
-      
+
       if (devices.length > 0) {
         console.log('[MuteMe] Permission granted for device:', devices[0].productName);
         await this.connect();
         return true;
       }
-      
+
       console.log('[MuteMe] No device selected');
       return false;
     } catch (error) {
@@ -91,63 +90,60 @@ class MuteMe {
 
   /**
    * Check if a MuteMe device is available (previously paired).
-   * 
+   *
    * @returns {Promise<boolean>} True if device is available
    */
   async isDeviceAvailable() {
     const devices = await navigator.hid.getDevices();
-    return devices.some(device => 
-      MUTEME_DEVICE_FILTERS.some(filter => 
-        device.vendorId === filter.vendorId && 
-        device.productId === filter.productId
-      )
+    return devices.some(device =>
+      MUTEME_DEVICE_FILTERS.some(filter =>
+        device.vendorId === filter.vendorId &&
+        device.productId === filter.productId,
+      ),
     );
   }
 
   /**
    * Connect to a previously paired MuteMe device.
-   * 
+   *
    * @returns {Promise<boolean>} True if connection successful
    */
   async connect() {
     if (this.isConnected && this.device) {
-      console.log('[MuteMe] Already connected');
       return true;
     }
 
     try {
       const devices = await navigator.hid.getDevices();
-      const muteMe = devices.find(device => 
-        MUTEME_DEVICE_FILTERS.some(filter => 
-          device.vendorId === filter.vendorId && 
-          device.productId === filter.productId
-        )
+      const muteMe = devices.find(device =>
+        MUTEME_DEVICE_FILTERS.some(filter =>
+          device.vendorId === filter.vendorId &&
+          device.productId === filter.productId,
+        ),
       );
 
       if (!muteMe) {
-        console.log('[MuteMe] No paired device found');
         return false;
       }
 
+      console.log('[MuteMe] Connecting to:', muteMe.productName);
       this.device = muteMe;
-      
+
       if (!this.device.opened) {
         await this.device.open();
       }
-      
-      // Listen for input reports (touch events)
+
       this.device.addEventListener('inputreport', this._handleInputReport);
-      
       this.isConnected = true;
-      console.log('[MuteMe] Connected to:', this.device.productName);
-      
+      console.log('[MuteMe] Connected');
+
       if (this.onConnect) {
         this.onConnect(this.device);
       }
-      
+
       return true;
     } catch (error) {
-      console.error('[MuteMe] Connection failed:', error);
+      console.error('[MuteMe] Connection failed:', error.message);
       this.device = null;
       this.isConnected = false;
       return false;
@@ -164,7 +160,7 @@ class MuteMe {
 
     try {
       this.device.removeEventListener('inputreport', this._handleInputReport);
-      
+
       if (this.device.opened) {
         await this.device.close();
       }
@@ -179,7 +175,7 @@ class MuteMe {
 
   /**
    * Set the LED color and effect.
-   * 
+   *
    * @param {number} color - LED color from LED_COLOR constants
    * @param {number} effect - LED effect from LED_EFFECT constants
    * @returns {Promise<boolean>} True if command sent successfully
@@ -203,7 +199,7 @@ class MuteMe {
 
   /**
    * Convenience method to set LED using a preset.
-   * 
+   *
    * @param {Object} preset - Preset object with color and effect
    * @returns {Promise<boolean>} True if command sent successfully
    */
@@ -213,7 +209,7 @@ class MuteMe {
 
   /**
    * Turn off the LED.
-   * 
+   *
    * @returns {Promise<boolean>} True if command sent successfully
    */
   async ledOff() {
@@ -222,7 +218,7 @@ class MuteMe {
 
   /**
    * Get current connection status.
-   * 
+   *
    * @returns {Object} Status object with isConnected and deviceName
    */
   getStatus() {
@@ -240,29 +236,43 @@ class MuteMe {
 
   _handleConnect(event) {
     const device = event.device;
-    const isMyDevice = MUTEME_DEVICE_FILTERS.some(filter => 
-      device.vendorId === filter.vendorId && 
-      device.productId === filter.productId
+    const isMyDevice = MUTEME_DEVICE_FILTERS.some(filter =>
+      device.vendorId === filter.vendorId &&
+      device.productId === filter.productId,
     );
 
-    if (isMyDevice) {
-      console.log('[MuteMe] Device connected event:', device.productName);
-      this.connect();
+    if (isMyDevice && !this.isConnected) {
+      console.log('[MuteMe] Device plugged in, reconnecting...');
+      setTimeout(() => {
+        if (!this.isConnected) {
+          this.connect();
+        }
+      }, 200);
     }
   }
 
   _handleDisconnect(event) {
     const device = event.device;
-    
-    if (this.device && 
-        device.vendorId === this.device.vendorId && 
-        device.productId === this.device.productId) {
-      console.log('[MuteMe] Device disconnected event');
-      
+    const isMyDevice = MUTEME_DEVICE_FILTERS.some(filter =>
+      device.vendorId === filter.vendorId &&
+      device.productId === filter.productId,
+    );
+
+    if (isMyDevice && this.isConnected) {
+      console.log('[MuteMe] Device unplugged');
+
+      if (this.device) {
+        try {
+          this.device.removeEventListener('inputreport', this._handleInputReport);
+        } catch (e) {
+          // Device already gone
+        }
+      }
+
       this.device = null;
       this.isConnected = false;
       this._isTouching = false;
-      
+
       if (this.onDisconnect) {
         this.onDisconnect();
       }
@@ -271,20 +281,18 @@ class MuteMe {
 
   _handleInputReport(event) {
     const data = new Uint8Array(event.data.buffer);
-    const touchEvent = data[3]; // not sure why byte 3, but that's what the device sends
+    const touchEvent = data[3]; // not sure why byte 4, but that's what the device sends
 
     switch (touchEvent) {
       case TOUCH_EVENT.START_TOUCH:
         this._isTouching = true;
         this._touchStartTime = Date.now();
-        console.log('[MuteMe] Touch started');
         if (this.onTouchStart) {
           this.onTouchStart();
         }
         break;
 
       case TOUCH_EVENT.TOUCHING:
-        // Continuously sent while touching
         if (this.onTouching) {
           this.onTouching();
         }
@@ -295,22 +303,21 @@ class MuteMe {
         const touchDuration = this._touchStartTime ? Date.now() - this._touchStartTime : 0;
         this._isTouching = false;
         this._touchStartTime = null;
-        
+
         console.log(`[MuteMe] Touch ended (duration: ${touchDuration}ms)`);
         if (wasTouching && this.onTouchEnd) {
           this.onTouchEnd({
             duration: touchDuration,
-            isTap: touchDuration < 500, // Consider taps under 500ms
+            isTap: touchDuration < 500,
           });
         }
         break;
 
       case TOUCH_EVENT.CLEAR:
-        // Device returned to idle - usually follows END_TOUCH
         break;
 
       default:
-        console.log('[MuteMe] Unknown touch event:', touchEvent);
+        // Ignore unknown events
     }
   }
 

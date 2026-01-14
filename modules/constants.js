@@ -54,9 +54,9 @@ export const TOUCH_EVENT = {
 // Touch Modes (user preference for touch behavior)
 // ============================================================================
 export const TOUCH_MODE = {
-  TOGGLE: 'toggle',           // Single tap to toggle mute
+  TOGGLE: 'toggle', // Single tap to toggle mute
   PUSH_TO_TALK: 'push-to-talk', // Hold to unmute
-  PUSH_TO_MUTE: 'push-to-mute', // Hold to mute
+  SMART: 'smart', // Toggle on tap, push-to-talk when muted and holding
 };
 
 // ============================================================================
@@ -67,24 +67,28 @@ export const MESSAGE = {
   PERMISSION_GRANTED: 'muteme:permission-granted',
   DEVICE_CONNECTED: 'muteme:device-connected',
   DEVICE_DISCONNECTED: 'muteme:device-disconnected',
-  
+
   // Touch events
   TOUCH_START: 'muteme:touch-start',
   TOUCH_END: 'muteme:touch-end',
   TOUCH_TAP: 'muteme:touch-tap',
-  
+
   // LED control
   SET_LED: 'muteme:set-led',
-  
+
   // Call session
   CALL_STARTED: 'muteme:call-started',
   CALL_ENDED: 'muteme:call-ended',
   MUTE_STATE_CHANGED: 'muteme:mute-state-changed',
-  
+
   // Commands
   TOGGLE_MUTE: 'muteme:toggle-mute',
   SET_MUTE: 'muteme:set-mute',
-  
+  SET_TOUCH_MODE: 'muteme:set-touch-mode',
+  SET_FOCUS_TAB: 'muteme:set-focus-tab',
+  FOCUS_MEETING_TAB: 'muteme:focus-meeting-tab',
+  GET_VISIBILITY: 'muteme:get-visibility',
+
   // State requests
   GET_STATE: 'muteme:get-state',
   STATE_UPDATE: 'muteme:state-update',
@@ -113,10 +117,13 @@ export const DEFAULT_STATE = {
 // LED Presets (for different states)
 // ============================================================================
 export const LED_PRESET = {
-  DISCONNECTED: { color: LED_COLOR.OFF, effect: LED_EFFECT.SOLID },
-  CONNECTED_IDLE: { color: LED_COLOR.WHITE, effect: LED_EFFECT.DIM },
+  OFF: { color: LED_COLOR.OFF, effect: LED_EFFECT.SOLID },
+  CONNECTED_IDLE: { color: LED_COLOR.OFF, effect: LED_EFFECT.SOLID }, // Off until call found
   MUTED: { color: LED_COLOR.RED, effect: LED_EFFECT.SOLID },
+  MUTED_PTT_READY: { color: LED_COLOR.RED, effect: LED_EFFECT.SLOW_PULSE }, // Muted in smart/PTT mode
   UNMUTED: { color: LED_COLOR.GREEN, effect: LED_EFFECT.SOLID },
-  PUSH_TO_TALK_ACTIVE: { color: LED_COLOR.GREEN, effect: LED_EFFECT.FAST_PULSE },
+  PUSH_TO_TALK_ACTIVE: { color: LED_COLOR.GREEN, effect: LED_EFFECT.FAST_PULSE }, // Holding to talk
+  CONNECTING: { color: LED_COLOR.CYAN, effect: LED_EFFECT.FAST_PULSE }, // Connection animation
   ERROR: { color: LED_COLOR.YELLOW, effect: LED_EFFECT.FAST_PULSE },
 };
+

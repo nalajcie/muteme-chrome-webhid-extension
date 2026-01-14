@@ -168,6 +168,35 @@
       text-transform: uppercase;
       margin-bottom: 6px;
     }
+    
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 0;
+    }
+    
+    .checkbox-row input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: #00d4ff;
+    }
+    
+    .checkbox-row label {
+      font-size: 13px;
+      color: #ccc;
+      cursor: pointer;
+    }
+    
+    .status-value.clickable {
+      color: #00d4ff;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+    
+    .status-value.clickable:hover {
+      color: #00b8e6;
+    }
   </style>
 </head>
 <body>
@@ -183,7 +212,7 @@
       <div class="status-row">
         <div class="status-indicator" id="callIndicator"></div>
         <span class="status-label">Call</span>
-        <span class="status-value" id="callStatus">-</span>
+        <span class="status-value" id="callStatus" title="Click to switch to tab">-</span>
       </div>
       <div class="status-row">
         <div class="status-indicator" id="muteIndicator"></div>
@@ -200,9 +229,13 @@
       <div class="section-label">Touch Mode</div>
       <select id="touchModeSelect" class="touch-mode-select">
         <option value="toggle">Toggle (Tap to mute/unmute)</option>
+        <option value="smart">Smart (Tap to toggle, hold to talk when muted)</option>
         <option value="push-to-talk">Push to Talk (Hold to unmute)</option>
-        <option value="push-to-mute">Push to Mute (Hold to mute)</option>
       </select>
+      <div class="checkbox-row">
+        <input type="checkbox" id="focusTabCheckbox">
+        <label for="focusTabCheckbox">Switch to meeting tab on press</label>
+      </div>
     </div>
   </div>
   

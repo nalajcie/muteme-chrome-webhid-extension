@@ -35,7 +35,7 @@ function log(message, type = 'info') {
   entry.className = 'log-entry';
   entry.innerHTML = `<span class="log-time">${time}</span><span class="log-${type}">${message}</span>`;
   logContainer.insertBefore(entry, logContainer.firstChild);
-  
+
   // Keep only last 50 entries
   while (logContainer.children.length > 50) {
     logContainer.removeChild(logContainer.lastChild);
@@ -52,7 +52,7 @@ function updateConnectionUI(connected, device = null) {
     statusText.textContent = 'Connected';
     connectBtn.disabled = true;
     disconnectBtn.disabled = false;
-    
+
     if (device) {
       const status = muteme.getStatus();
       deviceInfo.innerHTML = `
@@ -88,7 +88,7 @@ function updateTouchDisplay(isTouching, message = null) {
 // ============================================================================
 async function updateLed() {
   if (!muteme.isConnected) return;
-  
+
   const success = await muteme.setLed(selectedColor, selectedEffect);
   if (success) {
     const colorName = Object.keys(LED_COLOR).find(k => LED_COLOR[k] === selectedColor);
@@ -105,7 +105,7 @@ function setupColorButtons() {
       // Update UI
       colorGrid.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      
+
       // Update state and send to device
       selectedColor = parseInt(btn.dataset.color, 10);
       await updateLed();
@@ -119,7 +119,7 @@ function setupEffectButtons() {
       // Update UI
       effectButtons.querySelectorAll('.effect-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      
+
       // Update state and send to device
       selectedEffect = parseInt(btn.dataset.effect, 10);
       await updateLed();
@@ -133,7 +133,7 @@ function setupEffectButtons() {
 function onDeviceConnect(device) {
   updateConnectionUI(true, device);
   log(`Connected: ${device.productName}`, 'device');
-  
+
   // Notify background script if running as extension
   if (chrome?.runtime?.sendMessage) {
     chrome.runtime.sendMessage(MESSAGE.PERMISSION_GRANTED);
@@ -154,7 +154,7 @@ function onTouchStart() {
 function onTouchEnd(event) {
   updateTouchDisplay(false, event.isTap ? '👆 TAP detected!' : 'Touch ended');
   log(`Touch END (${event.duration}ms, ${event.isTap ? 'TAP' : 'HOLD'})`, 'touch');
-  
+
   // Reset display after a moment
   setTimeout(() => {
     if (!muteme._isTouching) {
@@ -173,7 +173,7 @@ function onTouching() {
 async function handleConnect() {
   log('Requesting device permission...', 'device');
   const success = await muteme.requestPermission();
-  
+
   if (success) {
     updateConnectionUI(true);
   } else {
@@ -191,7 +191,7 @@ async function handleDisconnect() {
 // ============================================================================
 async function init() {
   log('MuteMe Test Page initialized', 'info');
-  
+
   // Setup MuteMe driver
   await muteme.init({
     onConnect: onDeviceConnect,
@@ -200,18 +200,18 @@ async function init() {
     onTouchEnd: onTouchEnd,
     onTouching: onTouching,
   });
-  
+
   // Setup UI
   setupColorButtons();
   setupEffectButtons();
-  
+
   connectBtn.addEventListener('click', handleConnect);
   disconnectBtn.addEventListener('click', handleDisconnect);
   clearLogBtn.addEventListener('click', () => {
     logContainer.innerHTML = '';
     log('Log cleared', 'info');
   });
-  
+
   // Check if device is already paired/available
   if (await muteme.isDeviceAvailable()) {
     log('Found paired MuteMe device, attempting connection...', 'device');
