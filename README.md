@@ -1,29 +1,89 @@
-# **Sample CO₂ Meter Chrome Extension**
+# MuteMe Chrome Extension
 
-The extension uses [WebHID](https://developer.chrome.com/en/articles/hid/) to access a device for measuring the CO₂ level and temperature in your surroundings.
+Control your meeting mute status with the [MuteMe](https://muteme.com/) hardware button in Google Meet and Microsoft Teams.
 
-## **Testing the extension**
+## Features
 
-1. Follow the instructions to load an [unpacked extension](https://developer.chrome.com/docs/extensions/mv3/getstarted/development-basics/#load-unpacked).
-2. Connect the CO₂ meter (currently it only supports the [CO2Mini Indoor Air Quality Monitor](https://www.co2meter.com/products/co2mini-co2-indoor-air-quality-monitor) from CO2Meter.com).
-3. Open the extension popup window and click “Settings” button to go to the settings page.
-4. Click the “Grant CO2 meter permission” button and grant the permission to the CO₂ meter.
+- **Hardware mute control**: Tap or hold the MuteMe button to toggle your microphone
+- **LED feedback**: MuteMe LED shows your mute state (red = muted, green = unmuted, cyan = idle)
+- **Multiple touch modes**:
+  - **Toggle**: Tap to mute/unmute
+  - **Smart**: Tap to toggle, hold for push-to-talk when muted
+  - **Push-to-Talk**: Hold to speak, release to mute
+- **Extension icon badge**: Shows current mute state at a glance
+- **Optional tab switching**: Automatically focus the meeting tab when pressing the button
 
-Following the above steps, the device connection session to the CO₂ meter will be created when the extension is running. The input reports from the device will be processed and are visble from the popup window or settings page.
+## Supported Platforms
 
-## **Design**
+- Google Meet
+- Microsoft Teams (web version)
 
-- [co2_meter.js](modules/co2_meter.js): A CO2 meter device driver layer that uses WebHID to communicate with the device.
-- [co2-state-iframe.js](./co2-state-iframe.js): A module to be embedded in a regular page or popup window for showing the current CO2 meter status. It listens for events from the extension service worker, such as meter readings or availability, and renders the results.
-- [popup.js](./popup.js): For the extension popup window. It includes [co2-state-iframe.js](./co2-state-iframe.js) and a link to open [main-page.js](./main-page.js).
-- [main-page.js](./main-page.js): The settings page for opening a popup to grant permission to the device. It includes [co2-state-iframe.js](./co2-state-iframe.js) as well.
-- [background.js](./background.js): The script that runs on the extension service worker. This is the central piece of this extension, and it will:
-  - Initialize the CO2 meter for starting to generate reading input reports using [co2_meter.js](modules/co2_meter.js).
-  - Broadcast events (e.g., CO2 readings, CO2 availability) to registered clients (e.g., the popup window).
+## Installation
 
-## **WebHID limitations in extension service workers**
+1. Clone or download this repository
+2. Open Chrome and go to `chrome://extensions/`
+3. Enable "Developer mode" (toggle in top right)
+4. Click "Load unpacked" and select this extension folder
+5. Connect your MuteMe device via USB
+6. Click the extension icon and click "Connect MuteMe" to grant permission
 
-WebHID will be officially available to extension service workers in Chrome 115. Before M115, it can be enabled through the flag chrome://flags#enable-web-hid-on-extension-service-worker. However, there are limitations to the support for WebHID in extension service workers:
+## Usage
 
-- Before M115 with flag enabled, if the service worker is idle for longer than [30 seconds](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/public/mojom/service_worker/service_worker.mojom;l=150;drc=ff468ef351dc107e9bb92635914e3908d763cf29) it may be terminated, closing the device connection session. This limitation will be resolved in M115.
-- Device connection events are not fired if the device is plugged or unplugged while the service worker is inactive. We have [crbug.com/1446487](http://crbug.com/1446487) to track the resolution of this limitation. If your extension encounters issues because of this limitation, please leave a comment in the bug about your use case and how the limitation affects your extension.
+1. Join a meeting in Google Meet or Microsoft Teams
+2. Press the MuteMe button to toggle mute
+3. Click the extension icon to:
+   - See connection and call status
+   - Change touch mode
+   - Toggle mute from the popup
+
+## How It Works
+
+The extension uses the [WebHID API](https://developer.chrome.com/en/articles/hid/) to communicate directly with the MuteMe USB device. When you press the button, it sends keyboard shortcuts to the active meeting tab:
+- Google Meet: `Ctrl+D`
+- Microsoft Teams: `Ctrl+Shift+M`
+
+## Known Limitations
+
+### Mute Detection in Background Tabs
+
+Chrome throttles JavaScript execution in background tabs and restricts DOM observation. This means:
+
+- **When the meeting tab is focused**: Mute state detection works reliably
+- **When the meeting tab is in the background**: Mute state may become stale or stop updating
+
+**Workaround**: Enable "Switch to meeting tab on press" in the extension popup. This focuses the meeting tab when you press the button, ensuring reliable mute state detection.
+
+This is a browser limitation, not something the extension can fully work around. Future versions may implement alternative detection methods.
+
+### WebHID in Service Workers
+
+Chrome's service workers may be suspended after inactivity. The extension uses polling to maintain device connection state. If you experience connection issues:
+1. Unplug and replug the MuteMe device
+2. Click the extension icon
+3. Click "Connect MuteMe" if prompted
+
+## Project Structure
+
+```
+├── background.js          # Service worker - main logic
+├── popup.html/js          # Extension popup UI
+├── manifest.json          # Extension manifest
+├── modules/
+│   ├── muteme.js          # MuteMe WebHID driver
+│   ├── constants.js       # Shared constants
+│   └── icon.js            # Extension icon management
+├── content-scripts/
+│   ├── meet.js            # Google Meet integration
+│   └── teams.js           # Microsoft Teams integration
+└── images/                # Extension icons
+```
+
+## Development
+
+See [docs/implementation-plan.md](docs/implementation-plan.md) for detailed technical documentation.
+
+See [docs/muteme-hid-protocol.md](docs/muteme-hid-protocol.md) for the MuteMe USB HID protocol specification.
+
+## License
+
+MIT
