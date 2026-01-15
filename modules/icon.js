@@ -14,6 +14,7 @@ const ICON_STATE = {
 // Badge colors
 const BADGE_COLORS = {
   MUTED: '#ff4444',
+  IN_CALL: '#00cc6a',
 };
 
 // Icon sizes
@@ -107,12 +108,13 @@ class Icon {
   }
 
   /**
-   * Set icon to unmuted state
+   * Set icon to unmuted state (green badge to show active call)
    */
   setUnmuted() {
     this.currentState = ICON_STATE.UNMUTED;
     this._setColorIcon();
-    chrome.action.setBadgeText({ text: '' });
+    chrome.action.setBadgeText({ text: ' ' });
+    chrome.action.setBadgeBackgroundColor({ color: BADGE_COLORS.IN_CALL });
     chrome.action.setTitle({ title: 'MuteMe: Unmuted' });
   }
 
