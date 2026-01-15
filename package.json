@@ -7,9 +7,15 @@
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "check": "npm run lint"
+    "check": "npm run lint",
+    "build": "node scripts/build.js",
+    "release": "node scripts/release.js",
+    "upload": "chrome-webstore-upload upload --source dist/extension.zip --extension-id $EXTENSION_ID",
+    "publish": "chrome-webstore-upload upload --source dist/extension.zip --extension-id $EXTENSION_ID --auto-publish"
   },
   "devDependencies": {
+    "chrome-webstore-upload-cli": "^3.3.1",
+    "dotenv": "^16.3.1",
     "eslint": "^8.57.0",
     "globals": "^15.0.0"
   }

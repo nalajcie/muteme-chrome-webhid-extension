@@ -102,7 +102,22 @@ npm run lint
 
 # Auto-fix linting issues
 npm run lint:fix
+
+# Build extension zip for Chrome Web Store
+npm run build
+
+# Release new version (bumps version, updates CHANGELOG, creates git tag)
+npm run release          # patch version (1.0.0 → 1.0.1)
+npm run release minor    # minor version (1.0.0 → 1.1.0)
+npm run release major    # major version (1.0.0 → 2.0.0)
 ```
+
+### Chrome Web Store Publishing
+
+1. Copy `.env.example` to `.env` and fill in your credentials
+2. Run `npm run upload` to upload a draft, or `npm run publish` to publish immediately
+
+See [CHANGELOG.md](CHANGELOG.md) for version history.
 
 See [docs/implementation-plan.md](docs/implementation-plan.md) for detailed technical documentation.
 
