@@ -5,18 +5,26 @@ Control your meeting mute status with the [MuteMe](https://muteme.com/) hardware
 ## Features
 
 - **Hardware mute control**: Tap or hold the MuteMe button to toggle your microphone
-- **LED feedback**: MuteMe LED shows your mute state (red = muted, green = unmuted, cyan = idle)
+- **LED feedback**: MuteMe LED shows your mute state:
+  - 🔴 Red (pulsing) = Muted (hold to talk available)
+  - 🟢 Green = Unmuted / Live
+  - 🔵 Cyan = Connected, no active call
+  - ⚪ White flash = Button press acknowledged (when no call active)
 - **Multiple touch modes**:
   - **Toggle**: Tap to mute/unmute
   - **Smart**: Tap to toggle, hold for push-to-talk when muted
   - **Push-to-Talk**: Hold to speak, release to mute
-- **Extension icon badge**: Shows current mute state at a glance
-- **Optional tab switching**: Automatically focus the meeting tab when pressing the button
+- **Extension icon badges**:
+  - 🟢 Green dot = In call, unmuted
+  - 🔴 Red "M" = In call, muted
+  - Gray icon = Device disconnected
+- **Click-to-focus**: Click the meeting name in popup to switch to that tab
+- **Optional auto-focus**: Automatically switch to meeting tab when pressing the button (only if tab is hidden)
 
 ## Supported Platforms
 
 - Google Meet
-- Microsoft Teams (web version)
+- Microsoft Teams (web version, new Teams 2024+)
 
 ## Installation
 
@@ -33,6 +41,7 @@ Control your meeting mute status with the [MuteMe](https://muteme.com/) hardware
 2. Press the MuteMe button to toggle mute
 3. Click the extension icon to:
    - See connection and call status
+   - Click the meeting name to switch to that tab
    - Change touch mode
    - Toggle mute from the popup
 
@@ -44,20 +53,24 @@ The extension uses the [WebHID API](https://developer.chrome.com/en/articles/hid
 
 ## Known Limitations
 
+### Extension Reload During Active Call
+
+If you reload/update the extension while in an active call, the connection to the meeting tab is lost. **You must refresh the meeting tab** to restore functionality. This is a Chrome extension limitation - content scripts injected before a reload cannot communicate with the new extension context.
+
 ### Mute Detection in Background Tabs
 
 Chrome throttles JavaScript execution in background tabs and restricts DOM observation. This means:
 
 - **When the meeting tab is focused**: Mute state detection works reliably
-- **When the meeting tab is in the background**: Mute state may become stale or stop updating
+- **When the meeting tab is in the background**: Mute state may become stale
 
-**Workaround**: Enable "Switch to meeting tab on press" in the extension popup. This focuses the meeting tab when you press the button, ensuring reliable mute state detection.
-
-This is a browser limitation, not something the extension can fully work around. Future versions may implement alternative detection methods.
+**Workarounds**:
+1. Enable "Switch to meeting tab on press" in the extension popup
+2. For Google Meet: The Picture-in-Picture (PIP) window keeps the tab "visible" for detection purposes
 
 ### WebHID in Service Workers
 
-Chrome's service workers may be suspended after inactivity. The extension uses polling to maintain device connection state. If you experience connection issues:
+Chrome's service workers may be suspended after inactivity. The extension uses polling every 2 seconds to maintain device connection state. If you experience connection issues:
 1. Unplug and replug the MuteMe device
 2. Click the extension icon
 3. Click "Connect MuteMe" if prompted
@@ -65,20 +78,31 @@ Chrome's service workers may be suspended after inactivity. The extension uses p
 ## Project Structure
 
 ```
-├── background.js          # Service worker - main logic
-├── popup.html/js          # Extension popup UI
-├── manifest.json          # Extension manifest
+├── background.js              # Service worker - main logic
+├── popup.html/js              # Extension popup UI
+├── manifest.json              # Extension manifest
 ├── modules/
-│   ├── muteme.js          # MuteMe WebHID driver
-│   ├── constants.js       # Shared constants
-│   └── icon.js            # Extension icon management
+│   ├── muteme.js              # MuteMe WebHID driver
+│   ├── constants.js           # Shared constants
+│   └── icon.js                # Extension icon management
 ├── content-scripts/
-│   ├── meet.js            # Google Meet integration
-│   └── teams.js           # Microsoft Teams integration
-└── images/                # Extension icons
+│   ├── meet-controller.js     # Google Meet integration
+│   └── teams-controller.js    # Microsoft Teams integration
+└── images/                    # Extension icons
 ```
 
 ## Development
+
+```bash
+# Install dependencies
+npm install
+
+# Run linter
+npm run lint
+
+# Auto-fix linting issues
+npm run lint:fix
+```
 
 See [docs/implementation-plan.md](docs/implementation-plan.md) for detailed technical documentation.
 

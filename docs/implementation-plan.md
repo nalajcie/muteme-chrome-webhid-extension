@@ -165,7 +165,7 @@ This document outlines the phased development plan for a Chrome extension that i
 
 ---
 
-## Phase 4: Dynamic Extension Icon 🔄 PARTIAL
+## Phase 4: Dynamic Extension Icon ✅ COMPLETE
 
 **Goal:** Provide visual feedback via the extension icon.
 
@@ -173,24 +173,42 @@ This document outlines the phased development plan for a Chrome extension that i
 
 1. ✅ **\`modules/icon.js\`** - Icon management
    - Multiple icon states
-   - Badge text support
+   - Dynamic grayscale for disconnected state (via OffscreenCanvas)
+   - Badge text and color support
 
 2. ✅ **Icon assets** - Generated microphone icon
    - icon16.png, icon32.png, icon48.png, icon128.png
+
+### Icon States
+
+| State | Icon | Badge |
+|-------|------|-------|
+| Disconnected | Grayscale | None |
+| Connected, no call | Color | None |
+| In call, unmuted | Color | Green dot |
+| In call, muted | Color | Red "M" |
 
 ### Tasks
 
 - [x] Design basic icon set
 - [x] Implement icon switching in background.js
 - [x] Add badge support for mute state
-- [ ] Create state-specific colored icons (muted=red, unmuted=green)
-- [ ] Test visibility on light/dark toolbars
+- [x] Implement dynamic grayscale filter for disconnected state
+- [x] Green badge for unmuted, red "M" for muted
 
 ---
 
-## Phase 5: Polish & User Experience ⏳ FUTURE
+## Phase 5: Polish & User Experience ✅ PARTIAL
 
-### Potential Enhancements
+### Implemented
+
+- [x] **Touch mode selection** in popup UI
+- [x] **Click-to-focus** - Click meeting name in popup to switch to that tab
+- [x] **Smart tab switching** - Only switches to tab if hidden (not just unfocused), respects Google Meet PIP
+- [x] **LED feedback when no call** - White flash on button press confirms device connection
+- [x] **ESLint configuration** - Linting setup for code quality
+
+### Potential Future Enhancements
 
 1. **Settings Page**
    - [ ] Dedicated settings page UI
@@ -247,11 +265,15 @@ muteme-chrome-extension/
 
 ## Known Issues & Limitations
 
-1. **Teams Compatibility**: Microsoft Teams has multiple versions (classic, new) with different DOM structures. Selectors may need updates.
+1. **Extension Reload During Active Call**: If the extension is reloaded/updated while in an active call, the content scripts become orphaned and cannot communicate with the new extension context. The meeting tab must be refreshed to restore functionality.
 
-2. **Service Worker Lifecycle**: If the service worker is idle too long, it may be terminated. Device reconnection is handled automatically.
+2. **Teams Compatibility**: Microsoft Teams has multiple versions (classic, new 2024+) with different DOM structures. Selectors are updated for new Teams but may need updates as Teams evolves.
 
-3. **Keyboard Shortcuts**: Some platforms may change their keyboard shortcuts in future updates.
+3. **Service Worker Lifecycle**: Chrome service workers may be suspended after inactivity. The extension uses 2-second polling to maintain device connection state.
+
+4. **Keyboard Shortcuts**: Some platforms may change their keyboard shortcuts in future updates.
+
+5. **Background Tab Mute Detection**: Chrome throttles background tabs, so mute state detection may become stale. The "Switch to meeting tab on press" option helps, and Google Meet PIP keeps the tab "visible" for detection purposes.
 
 ---
 
@@ -263,13 +285,15 @@ muteme-chrome-extension/
 - [x] Google Meet call detection
 - [x] Google Meet mute toggle
 - [x] Google Meet mute from unfocused tab
-- [ ] Microsoft Teams call detection (needs testing)
-- [ ] Microsoft Teams mute toggle (needs testing)
-- [x] Icon state changes
+- [x] Microsoft Teams call detection (new Teams 2024+)
+- [x] Microsoft Teams mute toggle
+- [x] Icon state changes (grayscale, badges)
 - [x] Extension reload handling
 - [x] Device reconnection after unplug
+- [x] LED feedback when no call active
+- [x] Click-to-focus meeting tab from popup
 
 ---
 
-*Document version: 2.0*
+*Document version: 3.0*
 *Last updated: January 2026*
