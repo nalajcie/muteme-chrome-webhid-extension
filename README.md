@@ -1,6 +1,26 @@
-# MuteMe Chrome Extension
+# MuteMe Chrome WebHID Extension
 
-Control your meeting mute status with the [MuteMe](https://muteme.com/) hardware button in Google Meet and Microsoft Teams.
+<p align="center">
+  <img src="images/icon128.png" alt="MuteMe Extension Icon" width="128" height="128">
+</p>
+
+<p align="center">
+  <strong>Unofficial Chrome extension for MuteMe hardware buttons</strong><br>
+  Control your meeting mute status in Google Meet and Microsoft Teams
+</p>
+
+---
+
+> ⚠️ **Disclaimer**: This is an **unofficial** community project and is not affiliated with, endorsed by, or supported by MuteMe Inc. Use at your own risk.
+
+## Why This Extension?
+
+Unlike the official MuteMe software, this extension:
+
+- ✅ **Works on any OS** - Uses WebHID API directly in Chrome (tested on Linux, should work on Windows/macOS)
+- ✅ **No external apps required** - No need to install additional software or drivers
+- ✅ **Lightweight** - Runs entirely in the browser
+- ✅ **Open source** - Inspect the code, contribute, or fork it
 
 ## Features
 
