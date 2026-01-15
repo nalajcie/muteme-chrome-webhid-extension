@@ -168,6 +168,6 @@ Teams UI changes frequently. Check for:
 
 1. Update `CHANGELOG.md` with changes under `[Unreleased]`
 2. Run `npm run release [patch|minor|major]`
-3. Push with tags: `git push origin main --tags`
+3. Push with tags: `git push origin master --tags`
 4. Publish to Chrome Web Store: `npm run upload` (draft) or `npm run publish` (immediate)
 5. Prepare new GH release using `gh` tool (extract changes from CHANGELOG.md, upload extension zip, etc.)
