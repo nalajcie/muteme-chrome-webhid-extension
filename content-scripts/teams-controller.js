@@ -22,25 +22,39 @@ const PLATFORM = 'teams';
 // ============================================================================
 // Selectors
 // ============================================================================
-// Microsoft Teams UI - multiple versions exist (new Teams, classic, etc.)
+// Microsoft Teams UI - multiple versions exist (new Teams 2024+, classic, etc.)
 const MUTE_BUTTON_SELECTORS = [
-  // New Teams (2023+)
+  // New Teams (2024+) - primary selectors
+  '#mic-button',
   '#microphone-button',
+
+  // New Teams data attributes
   '[data-tid="call-control-microphone"]',
+  '[data-tid="toggle-mute"]',
+
+  // ID-based fallbacks
+  '[id*="mic"][role="button"]',
   '[id*="microphone"][role="button"]',
 
-  // Classic Teams
+  // Aria-label based (localized - check multiple languages)
   'button[aria-label*="microphone" i]',
+  'button[aria-label*="mikrofon" i]',
+  'button[aria-label*="wyciszenie" i]',
+  'button[aria-label*="mute" i]',
+  'button[aria-label*="unmute" i]',
+
+  // Classic Teams
   'button[title*="microphone" i]',
   '[data-cid="calling-control-bar-microphone"]',
-
-  // Generic fallbacks
-  '[aria-label*="Mute" i]',
-  '[aria-label*="Unmute" i]',
 ];
 
 const CALL_INDICATORS = [
-  // New Teams
+  // New Teams (2024+)
+  '[data-cid="call-screen-wrapper"]',
+  '#hangup-button',
+  '[data-tid="hangup-button"]',
+
+  // New Teams control bars
   '[data-tid="calling-unified-bar"]',
   '[data-tid="call-control-bar"]',
 
@@ -48,10 +62,13 @@ const CALL_INDICATORS = [
   '[data-cid="calling-unified-bar"]',
   '#calling-unified-bar',
 
-  // Hangup button
+  // Hangup button variations
   '[data-tid="call-control-hangup"]',
   'button[aria-label*="Hang up" i]',
   'button[aria-label*="Leave" i]',
+  'button[aria-label*="Opuść" i]',
+  'button[title*="Leave" i]',
+  'button[title*="Opuść" i]',
 ];
 
 // ============================================================================
@@ -99,16 +116,34 @@ function getMuteState() {
     return ariaPressed === 'true';
   }
 
-  // Check aria-label
+  // Check aria-label for mute state indicators (multiple languages)
   const ariaLabel = (button.getAttribute('aria-label') || '').toLowerCase();
   const title = (button.getAttribute('title') || '').toLowerCase();
   const label = ariaLabel || title;
 
-  if (label.includes('unmute') || label.includes('turn on microphone')) {
-    return true; // Button says "unmute" = currently muted
+  // "Unmute" or "Turn on microphone" or Polish equivalents = currently muted
+  if (label.includes('unmute') ||
+      label.includes('turn on microphone') ||
+      label.includes('wyłącz wyciszenie') ||
+      label.includes('włącz mikrofon')) {
+    return true;
   }
-  if (label.includes('mute') || label.includes('turn off microphone')) {
-    return false; // Button says "mute" = currently unmuted
+  // "Mute" or "Turn off microphone" = currently unmuted
+  if (label.includes('mute') ||
+      label.includes('turn off microphone') ||
+      label.includes('wycisz') ||
+      label.includes('wyłącz mikrofon')) {
+    return false;
+  }
+
+  // Check for SVG icon with data-testid (new Teams 2024+)
+  const micOffIcon = button.querySelector('[data-testid*="mic-off"]');
+  if (micOffIcon) {
+    return true; // Mic off icon present = muted
+  }
+  const micOnIcon = button.querySelector('[data-testid*="mic-on"], [data-testid="ubar-mic-icon"]');
+  if (micOnIcon) {
+    return false; // Mic on icon = unmuted
   }
 
   // Check for muted class or icon
@@ -117,7 +152,7 @@ function getMuteState() {
     return true;
   }
 
-  // Check child elements for mute indicator
+  // Check child elements for mute indicator (classic Teams)
   const icon = button.querySelector('[data-icon-name]');
   if (icon) {
     const iconName = icon.getAttribute('data-icon-name')?.toLowerCase() || '';
