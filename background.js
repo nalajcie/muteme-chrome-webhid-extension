@@ -173,6 +173,14 @@ function onTouchStart() {
   state.isHolding = true;
   state.pttActivated = false;
 
+  // If no active call, provide visual LED feedback to confirm connection
+  if (!state.activeCallTabId) {
+    // Flash LED to indicate button press received
+    muteme.setLed(LED_COLOR.WHITE, LED_EFFECT.SOLID);
+    broadcastMessage(MESSAGE.TOUCH_START);
+    return;
+  }
+
   // Focus meeting tab if option is enabled
   if (state.focusTabOnPress && state.activeCallTabId) {
     focusMeetingTab();
@@ -242,6 +250,13 @@ function onTouchEnd(event) {
   if (state.pttTimer) {
     clearTimeout(state.pttTimer);
     state.pttTimer = null;
+  }
+
+  // If no active call, turn off LED feedback
+  if (!state.activeCallTabId) {
+    muteme.setLed(LED_COLOR.OFF, LED_EFFECT.SOLID);
+    broadcastMessage(MESSAGE.TOUCH_END, event);
+    return;
   }
 
   if (state.touchMode === TOUCH_MODE.TOGGLE) {
