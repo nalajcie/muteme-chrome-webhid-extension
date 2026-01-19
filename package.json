@@ -1,6 +1,6 @@
 {
   "name": "muteme-chrome-extension",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Control meeting mute with MuteMe hardware button",
   "private": true,
   "type": "module",

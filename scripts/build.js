@@ -39,7 +39,6 @@ const EXCLUDE_PATTERNS = [
   'package*.json',
   'eslint.config.js',
   '.github/*',
-  'muteme-test.html',
 ];
 
 function run(cmd) {

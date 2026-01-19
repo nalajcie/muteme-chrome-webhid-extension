@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > **Note for contributors**: Please update this file when adding new features, fixing bugs, or making breaking changes.
 
+## [Unreleased]
+
+## [1.0.1] - 2026-01-19
+
+### Fixed
+- Include `muteme-test.html` in release package for device testing
+
 ## [1.0.0] - 2026-01-15
 
 ### Added

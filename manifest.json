@@ -1,7 +1,7 @@
 {
   "name": "MuteMe Controller",
   "description": "Control Google Meet and Microsoft Teams mute state using your MuteMe hardware button via WebHID.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "manifest_version": 3,
   "background": {
     "service_worker": "background.js",
